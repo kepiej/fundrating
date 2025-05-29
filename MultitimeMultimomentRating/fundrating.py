@@ -174,7 +174,7 @@ def dirDistF(
 
 
 class MVSKRating(bt.Algo):
-    def __init__(self, moment_generating_func: Callable[[pd.DataFrame], pd.DataFrame] = MVSK, getXYgXgY: Callable[[pd.DataFrame], Tuple[np.ndarray]] = TF_RA, nselectassets: int = 30, useConvex: bool = False, max_window_years: int = 5, nr_moments: int = 4, returns_df: Optional[pd.DataFrame] = None):
+    def __init__(self, moment_generating_func: Callable[[pd.DataFrame], pd.DataFrame] = MVSK, getXYgXgY: Callable[[pd.DataFrame], Tuple[np.ndarray]] = TF_RA, nselectassets: int = 30, useConvex: bool = False, max_window_years: int = 5, nr_moments: int = 4):
         super().__init__()
         self.moment_func = moment_generating_func
         self.getXYgXgY = getXYgXgY
@@ -182,9 +182,8 @@ class MVSKRating(bt.Algo):
         self.useConvex = useConvex
         self.max_window_years = max_window_years
         self.nr_moments = nr_moments
-        self.returns_df = returns_df
     
-    def __call__(self, target):
+    def __call__(self, target: bt.Strategy):
         selected = target.temp["selected"]
 
         if len(selected) == 0:
@@ -195,12 +194,27 @@ class MVSKRating(bt.Algo):
             target.temp["weights"] = {selected[0]: 1.0}
             return True
 
+        returns_df: pd.DataFrame | None
+        try:
+            returns_df = target.get_data('returns')
+        except KeyError:
+            returns_df = None
+
+        dividends_df: pd.DataFrame | None
+        try:
+            dividends_df = target.get_data('dividends')
+        except KeyError:
+            dividends_df = None
+
         t0 = target.now
-        if self.returns_df is None:
-            r = ffn.core.to_returns(target.universe.loc[:, selected]).dropna()
+        if returns_df is None:
+            prices = target.universe.loc[:, selected]
+            if dividends_df is not None:
+                prices += dividends_df.loc[:, selected]
+            r = ffn.core.to_returns(prices).dropna()
         else:
             # Dataframe of returns was also passed in
-            r = self.returns_df.loc[:, selected]
+            r = returns_df.loc[:, selected]
 
         mom_1y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=1) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         XOBS, YOBS, gX, gY = self.getXYgXgY(mom_1y)
