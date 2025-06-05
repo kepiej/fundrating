@@ -13,34 +13,26 @@ if __name__ == '__main__':
     # Path where processed data should be written to
     PROCESSED_DATA_PATH: Path = Path.cwd()
 
-    if (PROCESSED_DATA_PATH / 'New series of NAVs & dividends_NAVS.parquet').exists():
-        logger.info(f'"New series of NAVs & dividends_NAVS.parquet" found at {PROCESSED_DATA_PATH}! Reading parquet file...')
-        navs_df = pd.read_parquet(PROCESSED_DATA_PATH / 'New series of NAVs & dividends_NAVS.parquet')
-    else:
-        logger.info(f'No "New series of NAVs & dividends_NAVS.parquet" file found at {PROCESSED_DATA_PATH}! Reading Excel file...')
-        navs_df = pd.read_excel(DROPBOXFOLDER_PATH / 'Multimoment, multitime fund ratings with robust moment statistics' / 'New series of NAVs & dividends.xlsx', sheet_name='NAVs')
-        logger.info(f'Writing Parquet file of raw data to {PROCESSED_DATA_PATH / 'New series of NAVs & dividends_NAVS.parquet'} for future processing...')
-        navs_df.astype({'Distributions Default EUR // NAME': pd.StringDtype(), 'Lipper ID': pd.StringDtype()}).to_parquet(PROCESSED_DATA_PATH / 'New series of NAVs & dividends_NAVS.parquet')
+    navs_df = pd.read_excel(DROPBOXFOLDER_PATH / 'Multimoment, multitime fund ratings with robust moment statistics' / 'New series of NAVs & dividends.xlsx', sheet_name='NAVs')
 
-    if (PROCESSED_DATA_PATH / 'New series of NAVs & dividends_Dividends.parquet').exists():
-        logger.info(f'"New series of NAVs & dividends_Dividends.parquet" found at {PROCESSED_DATA_PATH}! Reading parquet file...')
-        divs_df = pd.read_parquet(PROCESSED_DATA_PATH / 'New series of NAVs & dividends_Dividends.parquet')
-    else:
-        logger.info(f'No "New series of NAVs & dividends_Dividends.parquet" file found at {PROCESSED_DATA_PATH}! Reading Excel file...')
-        divs_df = pd.read_excel(DROPBOXFOLDER_PATH / 'Multimoment, multitime fund ratings with robust moment statistics' / 'New series of NAVs & dividends.xlsx', sheet_name='Dividends')
-        logger.info(f'Writing Parquet file of raw data to {PROCESSED_DATA_PATH / 'New series of NAVs & dividends_Dividends.parquet'} for future processing...')
-        divs_df.astype({'Distributions Default EUR // NAME': pd.StringDtype(), 'Lipper ID': pd.StringDtype()}).to_parquet(PROCESSED_DATA_PATH / 'New series of NAVs & dividends_Dividends.parquet')
-
-    sample_df = pd.read_excel(DROPBOXFOLDER_PATH / 'Multi-horizon Robust Moment_Sample data' / '2-Sample-EquityFunds-693_15May.xlsx', sheet_name='SimpleFormat', usecols=['Lipper ID'])
-    sel_fundsid = sample_df['Lipper ID'].astype(str).to_list()
+    divs_df = pd.read_excel(DROPBOXFOLDER_PATH / 'Multimoment, multitime fund ratings with robust moment statistics' / 'New series of NAVs & dividends.xlsx', sheet_name='Dividends')
+    
+    sample_df = pd.read_excel(DROPBOXFOLDER_PATH / 'Multimoment, multitime fund ratings with robust moment statistics' / '2-Sample-AddIndex.xlsx', sheet_name='shorter list')
+    subsample_df = sample_df[(sample_df['Valuation/Pricing Frequency'] == 'Pricing Daily, Mon-Fri') &
+          sample_df['Institutional Fund?'].isna() &
+          (sample_df['Asset Type'] == 'Equity') &
+          (sample_df['Minimum initial investment'] < 100000)
+          ]
+    sel_fundsid = subsample_df['Lipper ID'].to_list()
+    
     logger.info(f"Number of selected funds: {len(sel_fundsid)}")
 
-    subset_navs_df = navs_df[navs_df['Lipper ID'].isin(sel_fundsid)]
-    prices = subset_navs_df[subset_navs_df.columns[2:]].T
+    subset_navs_df = navs_df[navs_df['Lipper ID'].isin(sel_fundsid)].set_index('Lipper ID').drop_duplicates()
+    prices = subset_navs_df[subset_navs_df.columns[1:]].T
     prices.index = pd.to_datetime(prices.index)
 
-    subset_divs_df = divs_df[divs_df['Lipper ID'].isin(sel_fundsid)]
-    dividends = subset_divs_df[subset_divs_df.columns[2:]].T
+    subset_divs_df = divs_df[divs_df['Lipper ID'].isin(sel_fundsid)].set_index('Lipper ID').drop_duplicates()
+    dividends = subset_divs_df[subset_divs_df.columns[1:]].T
     dividends.index = pd.to_datetime(dividends.index)
 
     logger.info(f'Writing selected subset of data to {PROCESSED_DATA_PATH / 'prices.parquet'}')
