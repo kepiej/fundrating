@@ -1,11 +1,16 @@
-from typing import Callable, Tuple, Optional
+import logging
+from typing import Callable, Optional, Tuple
+
+import bt
+import ffn
 import lmo
 import numpy as np
 import pandas as pd
 from scipy.stats import moment
+
 from toolkitvdw.production_light import dirDistDEAVRS, dirDistFDHVRS
-import ffn
-import bt
+
+logger = logging.getLogger(__name__)
 
 
 def General_Rank_Select_TWcom_HoldtoEnd(Rankres, nSelectAsset, rawreturn, index_holdstartdate, index_holdenddate, inCapital):
@@ -198,12 +203,14 @@ class MVSKRating(bt.Algo):
         try:
             returns_df = target.get_data('returns')
         except KeyError:
+            logger.error("No return data was provided. We'll calculate these directly from prices.")
             returns_df = None
 
         dividends_df: pd.DataFrame | None
         try:
             dividends_df = target.get_data('dividends')
         except KeyError:
+            logger.error("No dividends data was provided.")
             dividends_df = None
 
         t0 = target.now
