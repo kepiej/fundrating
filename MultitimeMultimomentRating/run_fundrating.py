@@ -1,7 +1,7 @@
 import logging
 from itertools import product
 from pathlib import Path
-from typing import Callable
+from typing import Callable, List
 
 import bt
 import pandas as pd
@@ -28,13 +28,13 @@ def getBackTestList(
     nr_moments: int = 4,
     useConvex: bool = False,
     **kwargs,
-):
+) -> List[bt.Backtest]:
     index_startdate = (
         price_df.index[1]
         + pd.DateOffset(years=max_window_years)
         - pd.DateOffset(months=1)
     )
-    print(index_startdate)
+    logger.info("Start date of first rebalance: {index_startdate}")
 
     # Vary the rebalancing time by generating a new strategy for every rebalance. This eliminates the effect of timing.
     testlist = []
