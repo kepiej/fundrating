@@ -17,13 +17,13 @@
 We prepare our data by running the `run_data_preparation.py` script. Open `run_data_preparation.py` in your text editor of choice and search the line:
 
 ```python
-DROPBOXFOLDER_PATH: Path = Path('/home/kepiej/Dropbox/ATarnaud/')
+INPUTFOLDER_PATH: Path = Path('/home/kepiej/Dropbox/ATarnaud/')
 ```
 
 Replace the path between quotes '' to your project Dropbox folder location on your pc.
 
 Now open your terminal (or powershell):
-1. Navigate to the folder with the code: ``cd <PATH>`` where \<PATH\> is the folder path.
+1. Navigate to the folder with the code: ``cd <PATH>`` where \<PATH\> is the folder path. This path should end with the folder "MultitimeMultimomentRating".
 
 2. Run the script:
 ``
@@ -35,7 +35,7 @@ When the script finishes you should find a 'prices.parquet' file in the same fol
 ### Run fundrating
 
 Open your terminal (or powershell):
-1. Navigate to the folder with the code: ``cd <PATH>`` where \<PATH\> is the folder path.
+1. Navigate to the folder with the code: ``cd <PATH>`` where \<PATH\> is the folder path. This path should end with the folder "MultitimeMultimomentRating".
 
 2. Run the script:
 ``
