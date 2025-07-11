@@ -44,7 +44,7 @@ def getBackTestList(
         - (2 * max_window_years * 12)
         - 1
     )
-    print(f"Number of rebalances is: {nrebalances}")
+    logger.info(f"Number of rebalances is: {nrebalances}")
     for k in range(nrebalances):
         index_rebdate = index_startdate + pd.DateOffset(months=k)
         s = bt.Strategy(

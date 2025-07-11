@@ -225,18 +225,24 @@ class MVSKRating(bt.Algo):
         else:
             # Dataframe of returns was also passed in
             r = returns_df.loc[:, selected]
+        
+        # Drop funds (i.e., columns) that contain Inf values
+        if np.isinf(r).any().sum() > 0:
+            logger.error(f"{np.isinf(r).any().sum()} funds have Inf value in their returns. Dropping these funds from the calculations!")
+            r = r.drop(columns=r.columns.to_series()[np.isinf(r).any()])
+            selected = r.columns.to_list()
 
         mom_1y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=1) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
-        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_1y.fillna(value=0.0))
+        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_1y)
         eff_mom_1y = pd.Series(data=dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="1y")
 
         mom_3y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=3) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
-        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_3y.fillna(value=0.0))
+        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_3y)
         eff_mom_3y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="3y")
 
         #mom_5y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=5) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         mom_5y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=self.max_window_years) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
-        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_5y.fillna(value=0.0))
+        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_5y)
         eff_mom_5y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="5y")
 
         eff = pd.concat([eff_mom_1y, eff_mom_3y, eff_mom_5y], axis=1)
