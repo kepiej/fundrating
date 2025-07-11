@@ -81,7 +81,7 @@ if __name__ == "__main__":
     data_dividends = data_dividends.fillna(0.0).sort_index()
 
     for useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(
-        product([True], range(4, 5), [MVSK, LMoments])
+        product([True, False], range(4, 5), [MVSK, LMoments])
     ):
         testlist = getBackTestList(
             data_prices,

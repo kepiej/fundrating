@@ -170,7 +170,6 @@ def dirDistF(
 
     if useConvex:
         (effFDH_ind,) = np.nonzero(np.abs(effFDH) < 1e-6)
-        assert effFDH_ind.shape[0] > 0, 'At least one FDH observation should be efficient!'
         eff = -np.inf * np.ones(XOBS.shape[0])
         for ind in range(XOBS.shape[0]):
             res = dirDistDEAVRS(XREF[effFDH_ind, :], YREF[effFDH_ind, :], XOBS[ind, :], YOBS[ind, :], gX[ind, :], gY[ind, :])
@@ -228,7 +227,7 @@ class MVSKRating(bt.Algo):
         
         # Drop funds (i.e., columns) that contain Inf values
         if np.isinf(r).any().sum() > 0:
-            logger.error(f"{np.isinf(r).any().sum()} funds have Inf value in their returns. Dropping these funds from the calculations!")
+            logger.error(f"{np.isinf(r).any().sum()} funds have one or more Inf values in their returns. Dropping these funds from the calculations!")
             r = r.drop(columns=r.columns.to_series()[np.isinf(r).any()])
             selected = r.columns.to_list()
 
