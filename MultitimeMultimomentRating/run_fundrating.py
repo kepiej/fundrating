@@ -34,7 +34,7 @@ def getBackTestList(
         + pd.DateOffset(years=max_window_years)
         - pd.DateOffset(months=1)
     )
-    logger.info("Start date of first rebalance: {index_startdate}")
+    logger.info(f"Start date of first rebalance: {index_startdate}")
 
     # Vary the rebalancing time by generating a new strategy for every rebalance. This eliminates the effect of timing.
     testlist = []
@@ -77,14 +77,14 @@ if __name__ == "__main__":
     logger.info(f"Reading dividend data from {DATA_PATH / 'dividends.parquet'}...")
     data_dividends = pd.read_parquet(DATA_PATH / "dividends.parquet")
     # Set NaN values to 0
-    data_prices = data_prices.fillna(0.0)
-    data_dividends = data_dividends.fillna(0.0)
+    data_prices = data_prices.fillna(0.0).sort_index()
+    data_dividends = data_dividends.fillna(0.0).sort_index()
 
     for useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(
-        product([False], range(4, 5), [MVSK, LMoments])
+        product([True], range(4, 5), [MVSK, LMoments])
     ):
         testlist = getBackTestList(
-            data_prices.sort_index(),
+            data_prices,
             moment_generating_func=cur_mom_gen_func,
             max_window_years=5,
             getXYgXgY=TF_RA,

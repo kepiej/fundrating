@@ -131,7 +131,7 @@ def DEAFDH_Moments_Eff(moments_df: pd.DataFrame, getXYgXgY: Callable[[pd.DataFra
 def MVSK(r: pd.DataFrame) -> pd.DataFrame:
     # Implements: Multi_Horizon_MVSK.m
     # Moment computations (see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.moment.html#scipy.stats.moment)
-    MVSK = pd.DataFrame(data=pd.NA, index=r.columns, columns=["M", "V", "S", "K"])
+    MVSK = pd.DataFrame(data=pd.NA, index=r.columns, columns=["M", "V", "S", "K"], dtype=pd.Float64Dtype())
     MVSK.loc[:, "M"] = np.mean(r.to_numpy(), axis=0)
     MVSK.loc[:, "V"] = moment(r, 2)
     MVSK.loc[:, "S"] = moment(r, 3)
@@ -142,13 +142,13 @@ def MVSK(r: pd.DataFrame) -> pd.DataFrame:
 def LMoments(r: pd.DataFrame) -> pd.DataFrame:
     # Compute L-moments up to order 4.
     # r is a (t x n) return matrix with t periods and n assets
-    return pd.DataFrame(data=lmo.l_moment(r, range(1,5), axis=0).T, index=r.columns, columns=["LM1", "LM2", "LM3", "LM4"])
+    return pd.DataFrame(data=lmo.l_moment(r, range(1,5), axis=0).T, index=r.columns, columns=["LM1", "LM2", "LM3", "LM4"], dtype=pd.Float64Dtype())
 
 
 def TLMoments(r: pd.DataFrame, trim: Tuple[int]) -> pd.DataFrame:
     # Compute L-moments up to order 4.
     # r is a (t x n) return matrix with t periods and n assets
-    return pd.DataFrame(data=lmo.l_moment(r, range(1,5), trim=trim, axis=0).T, index=r.columns, columns=["LM1", "LM2", "LM3", "LM4"])
+    return pd.DataFrame(data=lmo.l_moment(r, range(1,5), trim=trim, axis=0).T, index=r.columns, columns=["LM1", "LM2", "LM3", "LM4"], dtype=pd.Float64Dtype())
 
 
 def dirDistF(
@@ -166,8 +166,11 @@ def dirDistF(
         res = dirDistFDHVRS(XREF, YREF, XOBS[ind, :], YOBS[ind, :], gX[ind, :], gY[ind, :])
         effFDH[ind] = res["eff"]
 
+    assert (np.abs(effFDH) < 1e-6).sum() > 0, 'At least one observation should be efficient!'
+
     if useConvex:
         (effFDH_ind,) = np.nonzero(np.abs(effFDH) < 1e-6)
+        assert effFDH_ind.shape[0] > 0, 'At least one FDH observation should be efficient!'
         eff = -np.inf * np.ones(XOBS.shape[0])
         for ind in range(XOBS.shape[0]):
             res = dirDistDEAVRS(XREF[effFDH_ind, :], YREF[effFDH_ind, :], XOBS[ind, :], YOBS[ind, :], gX[ind, :], gY[ind, :])
@@ -224,16 +227,16 @@ class MVSKRating(bt.Algo):
             r = returns_df.loc[:, selected]
 
         mom_1y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=1) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
-        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_1y)
+        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_1y.fillna(value=0.0))
         eff_mom_1y = pd.Series(data=dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="1y")
 
         mom_3y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=3) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
-        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_3y)
+        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_3y.fillna(value=0.0))
         eff_mom_3y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="3y")
 
         #mom_5y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=5) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         mom_5y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=self.max_window_years) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
-        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_5y)
+        XOBS, YOBS, gX, gY = self.getXYgXgY(mom_5y.fillna(value=0.0))
         eff_mom_5y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="5y")
 
         eff = pd.concat([eff_mom_1y, eff_mom_3y, eff_mom_5y], axis=1)
