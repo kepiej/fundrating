@@ -1,4 +1,6 @@
 import logging
+import pickle
+from functools import partial
 from itertools import product
 from pathlib import Path
 from typing import Callable, List
@@ -53,6 +55,7 @@ def getBackTestList(
                 bt.algos.RunAfterDate(date=index_rebdate - pd.DateOffset(months=1)),
                 bt.algos.RunOnce(),
                 bt.algos.SelectAll(),
+                # bt.algos.SelectHasData(lookback = pd.DateOffset(years=max_window_years)),
                 MVSKRating(
                     moment_generating_func=moment_generating_func,
                     getXYgXgY=getXYgXgY,
@@ -69,6 +72,42 @@ def getBackTestList(
     return testlist
 
 
+def wrap_TLMoments(trim: tuple[int]) -> Callable[[pd.DataFrame], pd.DataFrame]:
+    """Wrapper function that includes the trim parameter in the string representation of the function.
+    This comes in handy when saving the results to a file where the filename also includes the method used to calculate the statistical moments.
+    """
+
+    wrapTLMoments = partial(TLMoments, trim=trim)
+    wrapTLMoments.__name__ = f"TLMoments{trim[0]}-{trim[1]}"
+    return wrapTLMoments
+
+
+def TLMoments_percentile(r: pd.DataFrame, alfa: tuple[int]) -> pd.DataFrame:
+    """
+    The trim = (s,t) parameter in TLMoments corresponds to removing the s smallest and t largest observations from the sample.
+    It's easier to determine these by specifying percentiles of the sample you want to remove. This function takes alfa = (l, u)
+    where l, u in [0, 100] and computes the corresponding number of observations to remove.
+    """
+
+    trim = (
+        round(r.shape[0] * alfa[0] / 100),
+        round(r.shape[0] - (r.shape[0] * alfa[1] / 100)),
+    )
+    return TLMoments(r, trim)
+
+
+def wrap_TLMoments_percentile(
+    alfa: tuple[int],
+) -> Callable[[pd.DataFrame], pd.DataFrame]:
+    """Wrapper function that includes the trim parameter in the string representation of the function.
+    This comes in handy when saving the results to a file where the filename also includes the method used to calculate the statistical moments.
+    """
+
+    wrapTLMoments_percentile = partial(TLMoments_percentile, alfa=alfa)
+    wrapTLMoments_percentile.__name__ = f"TLMoments{alfa[0]}-{alfa[1]}"
+    return wrapTLMoments_percentile
+
+
 if __name__ == "__main__":
     DATA_PATH: Path = Path.cwd()
 
@@ -80,8 +119,23 @@ if __name__ == "__main__":
     data_prices = data_prices.fillna(0.0).sort_index()
     data_dividends = data_dividends.fillna(0.0).sort_index()
 
+    # Convexity
+    convexities = [False]  # [True, False]
+
+    # List of moment-generating functions to use
+    momentfuncs = [
+        # MVSK,
+        # LMoments,
+        # wrap_TLMoments(
+        #     trim=(1, 1)
+        # ),  # Remove smallest and largest observation from data
+        wrap_TLMoments_percentile(
+            alfa=(10, 90)
+        ),  # Keep observations that fall between the 10% and 90% percentiles
+    ]
+
     for useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(
-        product([True, False], range(4, 5), [MVSK, LMoments])
+        product(convexities, range(4, 5), momentfuncs)
     ):
         testlist = getBackTestList(
             data_prices,
@@ -92,8 +146,20 @@ if __name__ == "__main__":
             useConvex=useConvex,
             dividends=data_dividends,
         )
-        res = bt.run(*testlist)
-        res.stats.to_excel(
-            DATA_PATH
-            / f"TF_RA_{cur_mom_gen_func.__name__}_{cur_nr_moments}moments_{'convex' if useConvex else 'nonconvex'}.xlsx"
-        )
+        try:
+            res = bt.run(*testlist)
+            res.stats.to_excel(
+                DATA_PATH
+                / f"TF_RA_{cur_mom_gen_func.__name__}_{cur_nr_moments}moments_{'convex' if useConvex else 'nonconvex'}.xlsx"
+            )
+
+            # with open(
+            #     DATA_PATH
+            #     / f"TF_RA_{cur_mom_gen_func.__name__}_{cur_nr_moments}moments_{'convex' if useConvex else 'nonconvex'}.pickle",
+            #     "wb",
+            # ) as f:
+            #     pickle.dump(res.stats, f)
+
+        except ValueError as valerr:
+            logger.error(valerr)
+            continue

@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Optional, Tuple
+from typing import Callable
 
 import bt
 import ffn
@@ -11,7 +11,8 @@ from scipy.stats import moment
 from toolkitvdw.production_light import dirDistDEAVRS, dirDistFDHVRS
 
 logger = logging.getLogger(__name__)
-
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
 
 def General_Rank_Select_TWcom_HoldtoEnd(Rankres, nSelectAsset, rawreturn, index_holdstartdate, index_holdenddate, inCapital):
     #EffAssets = Rankres.index[Rankres == 1].tolist()
@@ -25,7 +26,7 @@ def General_Rank_Select_TWcom_HoldtoEnd(Rankres, nSelectAsset, rawreturn, index_
         SelectAsset_More = PossibleSelectAsset[0:nSelectAsset-1]
         # SelectAsset_More=PossibleSelectAsset(randperm(numel(PossibleSelectAsset),nSelectAsset));
         SelectAsset = SelectAsset_More
-    
+
     holdreturn = rawreturn.loc[index_holdstartdate:index_holdenddate,:]
     nasset = holdreturn.shape[1]
     ewp = np.zeros((nasset, 1))
@@ -36,7 +37,7 @@ def General_Rank_Select_TWcom_HoldtoEnd(Rankres, nSelectAsset, rawreturn, index_
     ewpAsset_cumReturnRatio = Asset_cumReturnRatio @ ewp
     ewpAsset_cumReturn = inCapital * ewpAsset_cumReturnRatio
     TW = ewpAsset_cumReturn#.iloc[-1,0]
-    
+
     #ewpAsset_ReturnRatio = holdreturn @ ewp
     #ewpAsset_Return = inCapital * ewpAsset_ReturnRatio
 
@@ -46,21 +47,21 @@ def General_Rank_Select_TWcom_HoldtoEnd(Rankres, nSelectAsset, rawreturn, index_
     return PossibleSelectAsset, SelectAsset_Equ, SelectAsset_More, SelectAsset, TW
 
 
-def RApreferences(XOBS: np.ndarray, YOBS: np.ndarray) -> Tuple[np.ndarray]:
+def RApreferences(XOBS: np.ndarray, YOBS: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     # Sets direction vector according to Risk Averse preferences
     gX: np.ndarray = -np.abs(XOBS)
     gY: np.ndarray = np.abs(YOBS)
     return gX, gY
 
 
-def RLpreferences(XOBS: np.ndarray, YOBS: np.ndarray) -> Tuple[np.ndarray]:
+def RLpreferences(XOBS: np.ndarray, YOBS: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     # Sets direction vector according to Risk Loving preferences
     gX: np.ndarray = np.abs(XOBS)
     gY: np.ndarray = np.abs(YOBS)
     return gX, gY
 
 
-def splitMomentsToXY(moments_df: pd.DataFrame) -> Tuple[np.ndarray]:
+def splitMomentsToXY(moments_df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
     # Split dataframe of statistical moments into a X and Y matrix for use in efficiency analysis
     # Even moments are assigned to inputs and odd moments to outputs
     # Note: Pandas dataframe indexes start at 0!
@@ -69,7 +70,7 @@ def splitMomentsToXY(moments_df: pd.DataFrame) -> Tuple[np.ndarray]:
     return X, Y
 
 
-def OFsplitMomentsToXY(moments_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+def OFsplitMomentsToXY(moments_df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
     # Split dataframe of statistical moments into a X and Y matrix for use in efficiency analysis
     # All moments are assigned to the outputs and the inputs are set to a vector of zeros
     X: np.ndarray = np.zeros(shape=(moments_df.shape[0], 1))
@@ -77,28 +78,28 @@ def OFsplitMomentsToXY(moments_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray
     return X, Y
 
 
-def TF_RA(moments_df: pd.DataFrame) -> Tuple[np.ndarray]:
+def TF_RA(moments_df: pd.DataFrame) -> tuple[np.ndarray, ...]:
     # Converts a dataframe of statistical moments to inputs and outputs for benchmarking using a Traditional Frontier (TF) according to Risk Averse (RA) preferences
     XOBS, YOBS = splitMomentsToXY(moments_df)
     gX, gY = RApreferences(XOBS, YOBS)
     return XOBS, YOBS, gX, gY
 
 
-def TF_RL(moments_df: pd.DataFrame) -> Tuple[np.ndarray]:
+def TF_RL(moments_df: pd.DataFrame) -> tuple[np.ndarray, ...]:
     # Converts a dataframe of statistical moments to inputs and outputs for benchmarking using a Traditional Frontier (TF) according to Risk Loving (RL) preferences
     XOBS, YOBS = splitMomentsToXY(moments_df)
     gX, gY = RLpreferences(XOBS, YOBS)
     return XOBS, YOBS, gX, gY
 
 
-def OF_RL(moments_df: pd.DataFrame) -> Tuple[np.ndarray]:
+def OF_RL(moments_df: pd.DataFrame) -> tuple[np.ndarray, ...]:
     # Converts a dataframe of statistical moments to outputs for benchmarking using an Output Frontier (OF) according to Risk Loving (RL) preferences
     XOBS, YOBS = OFsplitMomentsToXY(moments_df)
     gX, gY = RLpreferences(XOBS, YOBS)
     return XOBS, YOBS, gX, gY
 
 
-def MainProg_ComEffiRank(r: pd.DataFrame, index_rebdate: pd.Timestamp, moment_generating_func: Callable[[pd.DataFrame], pd.DataFrame], getXYgXgY: Callable[[pd.DataFrame], Tuple[np.ndarray]] = TF_RA) -> pd.DataFrame:
+def MainProg_ComEffiRank(r: pd.DataFrame, index_rebdate: pd.Timestamp, moment_generating_func: Callable[[pd.DataFrame], pd.DataFrame], getXYgXgY: Callable[[pd.DataFrame], tuple[np.ndarray]] = TF_RA) -> pd.DataFrame:
     mom_1y = moment_generating_func(r.loc[(index_rebdate - pd.DateOffset(years=1) + pd.DateOffset(months=1)):index_rebdate,])
     mom_3y = moment_generating_func(r.loc[(index_rebdate - pd.DateOffset(years=3) + pd.DateOffset(months=1)):index_rebdate,])
     mom_5y = moment_generating_func(r.loc[(index_rebdate - pd.DateOffset(years=5) + pd.DateOffset(months=1)):index_rebdate,])
@@ -114,7 +115,7 @@ def MainProg_ComEffiRank(r: pd.DataFrame, index_rebdate: pd.Timestamp, moment_ge
     return eff
 
 
-def DEAFDH_Moments_Eff(moments_df: pd.DataFrame, getXYgXgY: Callable[[pd.DataFrame], Tuple[np.ndarray]] = TF_RA) -> pd.DataFrame:
+def DEAFDH_Moments_Eff(moments_df: pd.DataFrame, getXYgXgY: Callable[[pd.DataFrame], tuple[np.ndarray, ...]] = TF_RA) -> pd.DataFrame:
     XOBS, YOBS, gX, gY = getXYgXgY(moments_df)
 
     eff = pd.DataFrame(data=pd.NA, index=moments_df.index, columns=["FDH", "DEA"])
@@ -145,7 +146,7 @@ def LMoments(r: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(data=lmo.l_moment(r, range(1,5), axis=0).T, index=r.columns, columns=["LM1", "LM2", "LM3", "LM4"], dtype=pd.Float64Dtype())
 
 
-def TLMoments(r: pd.DataFrame, trim: Tuple[int]) -> pd.DataFrame:
+def TLMoments(r: pd.DataFrame, trim: tuple[int]) -> pd.DataFrame:
     # Compute L-moments up to order 4.
     # r is a (t x n) return matrix with t periods and n assets
     return pd.DataFrame(data=lmo.l_moment(r, range(1,5), trim=trim, axis=0).T, index=r.columns, columns=["LM1", "LM2", "LM3", "LM4"], dtype=pd.Float64Dtype())
@@ -160,7 +161,7 @@ def dirDistF(
     YREF: np.ndarray,
     useConvex: bool,
 ) -> np.ndarray:
-    
+
     effFDH = -np.inf * np.ones(XOBS.shape[0])
     for ind in range(XOBS.shape[0]):
         res = dirDistFDHVRS(XREF, YREF, XOBS[ind, :], YOBS[ind, :], gX[ind, :], gY[ind, :])
@@ -181,7 +182,7 @@ def dirDistF(
 
 
 class MVSKRating(bt.Algo):
-    def __init__(self, moment_generating_func: Callable[[pd.DataFrame], pd.DataFrame] = MVSK, getXYgXgY: Callable[[pd.DataFrame], Tuple[np.ndarray]] = TF_RA, nselectassets: int = 30, useConvex: bool = False, max_window_years: int = 5, nr_moments: int = 4):
+    def __init__(self, moment_generating_func: Callable[[pd.DataFrame], pd.DataFrame] = MVSK, getXYgXgY: Callable[[pd.DataFrame], tuple[np.ndarray, ...]] = TF_RA, nselectassets: int = 30, useConvex: bool = False, max_window_years: int = 5, nr_moments: int = 4):
         super().__init__()
         self.moment_func = moment_generating_func
         self.getXYgXgY = getXYgXgY
@@ -189,7 +190,7 @@ class MVSKRating(bt.Algo):
         self.useConvex = useConvex
         self.max_window_years = max_window_years
         self.nr_moments = nr_moments
-    
+
     def __call__(self, target: bt.Strategy):
         selected = target.temp["selected"]
 
@@ -205,14 +206,14 @@ class MVSKRating(bt.Algo):
         try:
             returns_df = target.get_data('returns')
         except KeyError:
-            logger.error("No return data was provided. We'll calculate these directly from prices.")
+            logger.info("No return data was provided. We'll calculate these directly from prices.")
             returns_df = None
 
         dividends_df: pd.DataFrame | None
         try:
             dividends_df = target.get_data('dividends')
         except KeyError:
-            logger.error("No dividends data was provided.")
+            logger.info("No dividends data was provided.")
             dividends_df = None
 
         t0 = target.now
@@ -220,29 +221,43 @@ class MVSKRating(bt.Algo):
             prices = target.universe.loc[:, selected]
             if dividends_df is not None:
                 prices += dividends_df.loc[:, selected]
-            r = ffn.core.to_returns(prices).dropna()
+            r = ffn.core.to_returns(prices)
         else:
             # Dataframe of returns was also passed in
             r = returns_df.loc[:, selected]
-        
-        # Drop funds (i.e., columns) that contain Inf values
-        if np.isinf(r).any().sum() > 0:
-            logger.error(f"{np.isinf(r).any().sum()} funds have one or more Inf values in their returns. Dropping these funds from the calculations!")
-            r = r.drop(columns=r.columns.to_series()[np.isinf(r).any()])
+
+        # Drop funds (i.e., columns) that contain Inf values over the maximum time window
+        maxrselperiod = slice((t0 - pd.DateOffset(years=self.max_window_years) + pd.DateOffset(months=1)), t0)
+        if np.isinf(r.loc[maxrselperiod,]).any().sum() > 0:
+            logger.error(f"{np.isinf(r.loc[maxrselperiod,]).any().sum()} funds have one or more Inf values in their returns. Dropping these funds from the calculations!")
+            r = r.drop(columns=r.columns.to_series()[np.isinf(r.loc[maxrselperiod,]).any()])
+            r = r.dropna()
             selected = r.columns.to_list()
 
         mom_1y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=1) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         XOBS, YOBS, gX, gY = self.getXYgXgY(mom_1y)
-        eff_mom_1y = pd.Series(data=dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="1y")
+        try:
+            eff_mom_1y = pd.Series(data=dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="1y")
+        except Exception as e:
+            logger.error(f"Error of type {type(e)} occurred. Silently ignoring it.")
+            return False
 
         mom_3y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=3) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         XOBS, YOBS, gX, gY = self.getXYgXgY(mom_3y)
-        eff_mom_3y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="3y")
+        try:
+            eff_mom_3y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="3y")
+        except Exception as e:
+            logger.error(f"Error of type {type(e)} occurred. Silently ignoring it.")
+            return False
 
         #mom_5y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=5) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         mom_5y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=self.max_window_years) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         XOBS, YOBS, gX, gY = self.getXYgXgY(mom_5y)
-        eff_mom_5y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="5y")
+        try:
+            eff_mom_5y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="5y")
+        except Exception as e:
+            logger.error(f"Error of type {type(e)} occurred. Silently ignoring it.")
+            return False
 
         eff = pd.concat([eff_mom_1y, eff_mom_3y, eff_mom_5y], axis=1)
         #eff['MH'] = ((eff_mom_1y*0.95) + (eff_mom_3y*(0.95**3)) + (eff_mom_5y*(0.95**5)))/3
@@ -260,7 +275,7 @@ class MVSKRating(bt.Algo):
             SelectAsset_More = PossibleSelectAsset[0:(self.nselectassets-1)]
             # SelectAsset_More=PossibleSelectAsset(randperm(numel(PossibleSelectAsset),self.nselectassets));
             SelectAsset = SelectAsset_More
-        
+
         target.temp["weights"] = {el: 1/self.nselectassets if el in SelectAsset else 0 for el in selected}
-        
+
         return True

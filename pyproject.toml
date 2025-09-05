@@ -20,4 +20,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-toolkitvdw = { path = "toolkitvdw" }
+toolkitvdw = { path = "./toolkitvdw" }
