@@ -1,5 +1,4 @@
 import logging
-import pickle
 from functools import partial
 from itertools import product
 from pathlib import Path
@@ -130,8 +129,8 @@ if __name__ == "__main__":
         #     trim=(1, 1)
         # ),  # Remove smallest and largest observation from data
         wrap_TLMoments_percentile(
-            alfa=(10, 90)
-        ),  # Keep observations that fall between the 10% and 90% percentiles
+            alfa=(5, 95)
+        ),  # Keep observations that fall between the 5% and 95% percentiles
     ]
 
     for useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(
@@ -152,13 +151,6 @@ if __name__ == "__main__":
                 DATA_PATH
                 / f"TF_RA_{cur_mom_gen_func.__name__}_{cur_nr_moments}moments_{'convex' if useConvex else 'nonconvex'}.xlsx"
             )
-
-            # with open(
-            #     DATA_PATH
-            #     / f"TF_RA_{cur_mom_gen_func.__name__}_{cur_nr_moments}moments_{'convex' if useConvex else 'nonconvex'}.pickle",
-            #     "wb",
-            # ) as f:
-            #     pickle.dump(res.stats, f)
 
         except ValueError as valerr:
             logger.error(valerr)

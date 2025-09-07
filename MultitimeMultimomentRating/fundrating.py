@@ -164,8 +164,12 @@ def dirDistF(
 
     effFDH = -np.inf * np.ones(XOBS.shape[0])
     for ind in range(XOBS.shape[0]):
-        res = dirDistFDHVRS(XREF, YREF, XOBS[ind, :], YOBS[ind, :], gX[ind, :], gY[ind, :])
-        effFDH[ind] = res["eff"]
+        try:
+            res = dirDistFDHVRS(XREF, YREF, XOBS[ind, :], YOBS[ind, :], gX[ind, :], gY[ind, :])
+            effFDH[ind] = res["eff"]
+        except ValueError as e:
+            logger.error(e)
+
 
     assert (np.abs(effFDH) < 1e-6).sum() > 0, 'At least one observation should be efficient!'
 
@@ -236,28 +240,16 @@ class MVSKRating(bt.Algo):
 
         mom_1y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=1) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         XOBS, YOBS, gX, gY = self.getXYgXgY(mom_1y)
-        try:
-            eff_mom_1y = pd.Series(data=dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="1y")
-        except Exception as e:
-            logger.error(f"Error of type {type(e)} occurred. Silently ignoring it.")
-            return False
+        eff_mom_1y = pd.Series(data=dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="1y")
 
         mom_3y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=3) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         XOBS, YOBS, gX, gY = self.getXYgXgY(mom_3y)
-        try:
-            eff_mom_3y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="3y")
-        except Exception as e:
-            logger.error(f"Error of type {type(e)} occurred. Silently ignoring it.")
-            return False
+        eff_mom_3y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="3y")
 
         #mom_5y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=5) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         mom_5y = self.moment_func(r.loc[(t0 - pd.DateOffset(years=self.max_window_years) + pd.DateOffset(months=1)):t0,]).iloc[:, :self.nr_moments]
         XOBS, YOBS, gX, gY = self.getXYgXgY(mom_5y)
-        try:
-            eff_mom_5y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="5y")
-        except Exception as e:
-            logger.error(f"Error of type {type(e)} occurred. Silently ignoring it.")
-            return False
+        eff_mom_5y = pd.Series(dirDistF(XOBS, YOBS, gX, gY, XREF=XOBS, YREF=YOBS, useConvex=self.useConvex), index=selected, name="5y")
 
         eff = pd.concat([eff_mom_1y, eff_mom_3y, eff_mom_5y], axis=1)
         #eff['MH'] = ((eff_mom_1y*0.95) + (eff_mom_3y*(0.95**3)) + (eff_mom_5y*(0.95**5)))/3
