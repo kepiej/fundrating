@@ -123,14 +123,20 @@ if __name__ == "__main__":
 
     # List of moment-generating functions to use
     momentfuncs = [
-        # MVSK,
-        # LMoments,
+        MVSK, # Classic statistical moments
+        LMoments, # L-moments
         # wrap_TLMoments(
         #     trim=(1, 1)
         # ),  # Remove smallest and largest observation from data
         wrap_TLMoments_percentile(
+            alfa=(10, 90)
+        ),  # Keep observations that fall between the 10% and 90% percentiles
+        wrap_TLMoments_percentile(
             alfa=(5, 95)
         ),  # Keep observations that fall between the 5% and 95% percentiles
+        wrap_TLMoments_percentile(
+            alfa=(1, 99)
+        ), # Keep observations that fall between the 1% and 99% percentiles
     ]
 
     for useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(
