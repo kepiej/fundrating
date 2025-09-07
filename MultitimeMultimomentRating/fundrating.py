@@ -168,7 +168,7 @@ def dirDistF(
             res = dirDistFDHVRS(XREF, YREF, XOBS[ind, :], YOBS[ind, :], gX[ind, :], gY[ind, :])
             effFDH[ind] = res["eff"]
         except ValueError as e:
-            logger.error(e)
+            logger.error(f"{e}. XOBS[ind, :]= {XOBS[ind, :]}, YOBS[ind, :] = {YOBS[ind, :]}")
 
 
     assert (np.abs(effFDH) < 1e-6).sum() > 0, 'At least one observation should be efficient!'
