@@ -28,6 +28,7 @@ def getBackTestList(
     getXYgXgY=TF_RA,
     nr_moments: int = 4,
     useConvex: bool = False,
+    nselectassets: int = 30,
     **kwargs,
 ) -> List[bt.Backtest]:
     index_startdate = (
@@ -58,7 +59,7 @@ def getBackTestList(
                 MVSKRating(
                     moment_generating_func=moment_generating_func,
                     getXYgXgY=getXYgXgY,
-                    nselectassets=30,
+                    nselectassets=nselectassets,
                     useConvex=useConvex,
                     max_window_years=max_window_years,
                     nr_moments=nr_moments,
@@ -118,8 +119,11 @@ if __name__ == "__main__":
     data_prices = data_prices.fillna(0.0).sort_index()
     data_dividends = data_dividends.fillna(0.0).sort_index()
 
+    # Number of efficient funds to select for the portfolio
+    nselectassets = [30]
+
     # Convexity
-    convexities = [False]  # [True, False]
+    convexities = [True]  # [True, False]
 
     # List of moment-generating functions to use
     momentfuncs = [
@@ -128,19 +132,19 @@ if __name__ == "__main__":
         # wrap_TLMoments(
         #     trim=(1, 1)
         # ),  # Remove smallest and largest observation from data
-        wrap_TLMoments_percentile(
-            alfa=(10, 90)
-        ),  # Keep observations that fall between the 10% and 90% percentiles
-        wrap_TLMoments_percentile(
-            alfa=(5, 95)
-        ),  # Keep observations that fall between the 5% and 95% percentiles
-        wrap_TLMoments_percentile(
-            alfa=(1, 99)
-        ), # Keep observations that fall between the 1% and 99% percentiles
+        # wrap_TLMoments_percentile(
+        #     alfa=(10, 90)
+        # ),  # Keep observations that fall between the 10% and 90% percentiles
+        # wrap_TLMoments_percentile(
+        #     alfa=(5, 95)
+        # ),  # Keep observations that fall between the 5% and 95% percentiles
+        # wrap_TLMoments_percentile(
+        #     alfa=(1, 99)
+        # ), # Keep observations that fall between the 1% and 99% percentiles
     ]
 
-    for useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(
-        product(convexities, range(4, 5), momentfuncs)
+    for nselectasset, useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(
+        product(nselectassets, convexities, range(3, 4), momentfuncs)
     ):
         testlist = getBackTestList(
             data_prices,
@@ -149,15 +153,19 @@ if __name__ == "__main__":
             getXYgXgY=TF_RA,
             nr_moments=cur_nr_moments,
             useConvex=useConvex,
+            nselectassets=nselectasset,
             dividends=data_dividends,
         )
         try:
             res = bt.run(*testlist)
             res.stats.to_excel(
                 DATA_PATH
-                / f"TF_RA_{cur_mom_gen_func.__name__}_{cur_nr_moments}moments_{'convex' if useConvex else 'nonconvex'}.xlsx"
+                / f"TF_RA_Funds{nselectasset}_{cur_mom_gen_func.__name__}_{cur_nr_moments}moments_{'convex' if useConvex else 'nonconvex'}.xlsx"
             )
 
         except ValueError as valerr:
             logger.error(valerr)
             continue
+        finally:
+            del res
+            del testlist
