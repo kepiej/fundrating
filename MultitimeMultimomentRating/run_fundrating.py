@@ -120,7 +120,7 @@ if __name__ == "__main__":
     data_dividends = data_dividends.fillna(0.0).sort_index()
 
     # Number of efficient funds to select for the portfolio
-    nselectassets = [30]
+    nselectassets = [10]
 
     # Convexity
     convexities = [True]  # [True, False]
