@@ -120,10 +120,10 @@ if __name__ == "__main__":
     data_dividends = data_dividends.fillna(0.0).sort_index()
 
     # Number of efficient funds to select for the portfolio
-    nselectassets = [10]
+    nselectassets = [10, 20, 30]
 
     # Convexity
-    convexities = [True]  # [True, False]
+    convexities = [False]  # [True, False]
 
     # List of moment-generating functions to use
     momentfuncs = [
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     ]
 
     for nselectasset, useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(
-        product(nselectassets, convexities, range(3, 4), momentfuncs)
+        product(nselectassets, convexities, range(2, 4), momentfuncs)
     ):
         testlist = getBackTestList(
             data_prices,
