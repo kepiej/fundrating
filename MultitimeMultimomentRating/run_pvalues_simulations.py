@@ -34,6 +34,7 @@ if __name__ == "__main__":
     simfilenames.extend([f"{sim_file.parts[-2]}/{sim_file.stem}" for sim_file in RESULTS_PATH.glob("./*/*/TF_RA_*.xlsx")]) # MVSK results
 
     sel_indicators: Final[list[str]] = [
+        "total_return",
         "cagr",
         "daily_mean",
         "daily_vol",
