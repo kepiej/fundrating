@@ -7,8 +7,6 @@ import pandas as pd
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-logger.addHandler(logging.StreamHandler())
 
 def calculate_pvalues(
     baseline: pd.DataFrame, simres: pd.DataFrame, indicator: str
@@ -20,6 +18,9 @@ def calculate_pvalues(
 
 
 if __name__ == "__main__":
+    logger.setLevel(logging.WARNING)
+    logger.addHandler(logging.StreamHandler())
+
     # RESULTS_PATH: Final[Path] = Path.cwd()
     RESULTS_PATH: Final[Path] = Path("/home/kepiej/Dropbox/ATarnaud/Multimoment, multitime fund ratings with robust moment statistics/Results/")
 

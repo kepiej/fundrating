@@ -17,8 +17,6 @@ from fundrating import (
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
 
 
 def getBackTestList(
@@ -44,7 +42,6 @@ def getBackTestList(
     nrebalances = (
         (price_df.index.max().to_period("M") - price_df.index.min().to_period("M")).n
         - (2 * max_window_years * 12)
-        - 1
     )
     logger.info(f"Number of rebalances is: {nrebalances}")
     for k in range(nrebalances):
@@ -55,7 +52,6 @@ def getBackTestList(
                 bt.algos.RunAfterDate(date=index_rebdate - pd.DateOffset(months=1)),
                 bt.algos.RunOnce(),
                 bt.algos.SelectAll(),
-                # bt.algos.SelectHasData(lookback = pd.DateOffset(years=max_window_years)),
                 MVSKRating(
                     moment_generating_func=moment_generating_func,
                     getXYgXgY=getXYgXgY,
@@ -109,6 +105,9 @@ def wrap_TLMoments_percentile(
 
 
 if __name__ == "__main__":
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
     DATA_PATH: Path = Path.cwd()
 
     logger.info(f"Reading price data from {DATA_PATH / 'prices.parquet'}...")
@@ -123,24 +122,30 @@ if __name__ == "__main__":
     nselectassets = [10, 20, 30]
 
     # Convexity
-    convexities = [False]  # [True, False]
+    convexities = [True, False]
 
     # List of moment-generating functions to use
     momentfuncs = [
-        MVSK, # Classic statistical moments
-        LMoments, # L-moments
+        # MVSK, # Classic statistical moments
+        # LMoments, # L-moments
         # wrap_TLMoments(
         #     trim=(1, 1)
         # ),  # Remove smallest and largest observation from data
-        # wrap_TLMoments_percentile(
-        #     alfa=(10, 90)
-        # ),  # Keep observations that fall between the 10% and 90% percentiles
-        # wrap_TLMoments_percentile(
-        #     alfa=(5, 95)
-        # ),  # Keep observations that fall between the 5% and 95% percentiles
-        # wrap_TLMoments_percentile(
-        #     alfa=(1, 99)
-        # ), # Keep observations that fall between the 1% and 99% percentiles
+        wrap_TLMoments_percentile(
+            alfa=(10, 90)
+        ),  # Keep observations that fall between the 10% and 90% percentiles
+        wrap_TLMoments_percentile(
+            alfa=(5, 95)
+        ),  # Keep observations that fall between the 5% and 95% percentiles
+        wrap_TLMoments_percentile(
+            alfa=(2.5, 97.5)
+        ),  # Keep observations that fall between the 2.5% and 97.5% percentiles
+        wrap_TLMoments_percentile(
+            alfa=(1, 99)
+        ), # Keep observations that fall between the 1% and 99% percentiles
+        wrap_TLMoments_percentile(
+            alfa=(0.5, 99.5)
+        ), # Keep observations that fall between the 1% and 99% percentiles
     ]
 
     for nselectasset, useConvex, cur_nr_moments, cur_mom_gen_func in tqdm(

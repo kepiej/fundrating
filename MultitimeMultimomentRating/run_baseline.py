@@ -6,8 +6,6 @@ import pandas as pd
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
 
 
 class FixedAssetSelect(bt.Algo):
@@ -51,13 +49,11 @@ def getBackTestList(
     nrebalances = (
         (price_df.index.max().to_period("M") - price_df.index.min().to_period("M")).n
         - (2 * max_window_years * 12)
-        - 1
     )
     logger.info(f"Number of rebalances is: {nrebalances}")
     for k in range(nrebalances):
         index_rebdate = index_startdate + pd.DateOffset(months=k)
         s = bt.Strategy(
-            #name=f"Asset{assetK}Rating_{k}",
             name=f"Rebalance_{k}",
             algos=[
                 bt.algos.RunAfterDate(date=index_rebdate - pd.DateOffset(months=1)),
@@ -73,6 +69,9 @@ def getBackTestList(
 
 
 if __name__ == "__main__":
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.INFO)
+
     DATA_PATH: Path = Path.cwd()
 
     logger.info(f"Reading price data from {DATA_PATH / 'prices.parquet'}...")
