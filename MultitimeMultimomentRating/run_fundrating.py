@@ -126,8 +126,8 @@ if __name__ == "__main__":
 
     # List of moment-generating functions to use
     momentfuncs = [
-        # MVSK, # Classic statistical moments
-        # LMoments, # L-moments
+        MVSK, # Classic statistical moments
+        LMoments, # L-moments
         # wrap_TLMoments(
         #     trim=(1, 1)
         # ),  # Remove smallest and largest observation from data
